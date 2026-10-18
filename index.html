@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jinda Li · I build games that feel good to be inside.</title>
+<meta name="description" content="Jinda Li (dazi), game developer in Helsinki. Small, soft worlds about time and light: games, XR, shaders and tools.">
+<meta name="theme-color" content="#efe7da">
+<meta property="og:title" content="Jinda Li">
+<meta property="og:description" content="I build games that feel good to be inside.">
+<meta property="og:image" content="assets/still.jpg">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Spectral:ital,wght@0,400;0,500;1,400&family=Noto+Serif+SC:wght@400;600&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="lake" aria-hidden="true"></canvas>
+<div id="still" aria-hidden="true"></div>
+<div id="veil" aria-hidden="true"></div>
+
+<header id="top">
+  <a class="who" href="#">
+    <h1 id="name">Jinda Li</h1>
+    <p id="tagline">I build games that feel good to be inside.</p>
+  </a>
+  <nav id="nav" aria-label="Sections"></nav>
+</header>
+<div id="corner">
+  <p id="clock" hidden></p>
+  <div id="lang" role="group" aria-label="Language"></div>
+</div>
+<div id="marks" aria-hidden="true"></div>
+<p id="hint"></p>
+<div id="tag" hidden></div>
+
+<aside id="panel" aria-hidden="true" aria-labelledby="panel-title">
+  <div class="sheet">
+    <button class="close" type="button" aria-label="Back to the lake">×</button>
+    <p class="kicker"></p>
+    <h2 id="panel-title"></h2>
+    <div class="body"></div>
+  </div>
+</aside>
+
+<noscript><p class="noscript">This site is a small lakeside painted in real time. It needs JavaScript; the work is also on <a href="https://dazi77.itch.io/">itch.io</a> and <a href="https://github.com/jinda-li">GitHub</a>.</p></noscript>
+<script type="module" src="src/app.mjs"></script>
+</body>
+</html>

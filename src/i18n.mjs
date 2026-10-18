@@ -1,0 +1,65 @@
+// Interface words in both languages. Content lives in content.mjs.
+
+export const SECTIONS = ['work', 'experience', 'about', 'contact'];
+
+export const UI = {
+  en: {
+    nav: { work: 'Work', now: 'Now', experience: 'Path', about: 'About', contact: 'Say hello' },
+    place: { work: 'the cottage', now: 'the woodshed', experience: 'the pier', about: 'the sauna', contact: 'the fire' },
+    kicker: { work: 'In the cottage', now: 'In the woodshed', experience: 'Down the pier', about: 'In the sauna', contact: 'By the fire' },
+    title: { work: 'Things I have made', now: 'What I am making now', experience: 'Where I have been', about: 'About me', contact: 'Come and sit by the fire' },
+    hint: 'The lake follows the time in Helsinki. Click the cottage, the pier, the sauna or the fire.',
+    toy: 'Click it',
+    close: 'Back to the lake',
+    back: 'All work',
+    featured: 'Favourites',
+    more: 'More, older and smaller',
+    filters: { all: 'All', game: 'Games', xr: 'XR', tool: 'Tools & AI', film: 'Films', research: 'Research' },
+    status: { released: 'Released', jam: 'Game jam', prototype: 'Prototype', 'in-progress': 'In progress' },
+    kind: { game: 'Game', xr: 'XR', tool: 'Tool', film: 'Film', research: 'Research' },
+    role: 'My part', tech: 'Made with', links: 'Links',
+    education: 'Education', awards: 'Awards and shows', experience: 'Work',
+    elsewhere: 'Elsewhere',
+    now: 'Right now',
+    present: 'now',
+    seeWork: 'See the work',
+    contactText: ['The easiest way to reach me is a message on LinkedIn. My games are on itch.io and my code is on GitHub.', 'I am happy to talk about cosy games, XR, shaders, or anything you are making.'],
+    helsinki: 'Helsinki',
+    list: 'Text only',
+    private: 'private',
+    season: { summer: 'summer', autumn: 'autumn', late: 'late autumn', winter: 'winter', spring: 'spring' },
+  },
+  zh: {
+    nav: { work: '作品', now: '在做的', experience: '经历', about: '关于', contact: '打个招呼' },
+    place: { work: '小木屋', now: '柴棚', experience: '码头', about: '桑拿房', contact: '篝火' },
+    kicker: { work: '小木屋里', now: '柴棚里', experience: '码头那头', about: '桑拿房里', contact: '篝火边' },
+    title: { work: '做过的东西', now: '正在做的', experience: '走过的路', about: '关于我', contact: '来篝火边坐坐' },
+    hint: '湖边的天光跟着赫尔辛基的时间走。点小木屋、码头、桑拿房或者篝火看看。',
+    toy: '点一下',
+    close: '回到湖边',
+    back: '全部作品',
+    featured: '最喜欢的',
+    more: '更多：早一点的、小一点的',
+    filters: { all: '全部', game: '游戏', xr: 'XR', tool: '工具和 AI', film: '影像', research: '研究' },
+    status: { released: '已发布', jam: 'Game Jam', prototype: '原型', 'in-progress': '在做' },
+    kind: { game: '游戏', xr: 'XR', tool: '工具', film: '影像', research: '研究' },
+    role: '我做的', tech: '用到', links: '链接',
+    education: '教育', awards: '获奖和展出', experience: '工作',
+    elsewhere: '别的地方',
+    now: '最近在做',
+    present: '至今',
+    seeWork: '看看做了什么',
+    contactText: ['找我最方便的是在 LinkedIn 发消息。游戏在 itch.io，代码在 GitHub。', '想聊治愈游戏、XR、shader，或者你正在做的东西，都欢迎。'],
+    helsinki: '赫尔辛基',
+    list: '纯文字版',
+    private: '私有',
+    season: { summer: '夏', autumn: '秋', late: '深秋', winter: '冬', spring: '春' },
+  },
+};
+
+/** The moment words from astro.mjs are Chinese; this gives the English. */
+export const MOMENT_EN = {
+  '仲夏夜': 'midsummer night', '蓝调时刻': 'blue hour', '晨光': 'morning light', '金色时刻': 'golden hour', '上午': 'morning',
+  '冬日正午': 'winter noon', '正午': 'noon', '午后': 'afternoon', '日出前': 'before sunrise', '日落': 'sunset',
+  '极夜': 'polar night', '黎明前': 'before dawn', '深夜': 'late night', '夜': 'night',
+};
