@@ -30,7 +30,7 @@ export function pier({ x, z0, z1, w, y }){
 }
 
 /** Clinker-style rowing boat: coloured hull, pale interior, thwarts and two oars. Bow points +z. */
-export function rowboat(hull = '#b2402e', inside = '#ece4d6'){
+export function rowboat(hull = '#b2402e', inside = '#ece4d6', { oars = true } = {}){
   const g = new THREE.Group(), b = new Batch();
   const shape = (sx, sy, sz, col, y) => b.add(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
     (c, X, Y, Z) => c.set(col).multiplyScalar(1 - Math.max(0, Math.sin(Y * 24) * .05)), [0, y, 0], [0, 0, 0], [sx, sy, sz]);
@@ -40,7 +40,7 @@ export function rowboat(hull = '#b2402e', inside = '#ece4d6'){
   for (const z of [-.75, .1, .85]) b.box(1.1, .05, .26, AC.wood, [0, .3, z]);
   b.box(.06, .3, .5, AC.wood, [0, .32, -2.05]);
   // Oars resting across the thwarts.
-  for (const s of [-1, 1]){
+  if (oars) for (const s of [-1, 1]){
     b.cyl(.025, .025, 2.5, '#c49a62', [s * .25, .4, .2], [Math.PI / 2, 0, s * .06], 6);
     b.box(.13, .02, .5, '#c49a62', [s * .3, .4, 1.35], [0, s * .06, 0]);
   }
@@ -190,5 +190,25 @@ export function lantern(){
   const gm = new THREE.MeshBasicMaterial({ color: '#ffd28a' }), gl = glass.mesh(gm); gl.castShadow = false; g.add(gl);
   const light = new THREE.PointLight('#ffb35c', 0, 8, 1.6); light.position.set(0, 1.2, 0); g.add(light);
   g.userData = { glass: gm, light };
+  return g;
+}
+
+/** A small red boathouse on posts at the water's edge, with a plank landing, for the pine island. */
+export function boathouse(){
+  const g = new THREE.Group(), b = new Batch(), r = rng(57);
+  const L = 3.6, Wd = 2.6, H = 1.7;
+  for (const x of [-L / 2, 0, L / 2]) for (const z of [-Wd / 2, Wd / 2]) b.cyl(.09, .1, 1.6, AC.plankDark, [x, -.4, z], [0, 0, 0], 6);
+  b.box(L + .1, .08, Wd + .1, AC.plank, [0, .38, 0]);
+  // Falu-red board walls, open at the lake end (+x).
+  for (const z of [-Wd / 2, Wd / 2]) for (let i = 0; i < 9; i++) b.box(L / 9 - .02, H, .06, vary('#8f2c22', r, .06), [-L / 2 + (i + .5) * L / 9, .42 + H / 2, z]);
+  b.box(.06, H, Wd, '#8a2a20', [-L / 2, .42 + H / 2, 0]);
+  b.box(.08, .5, Wd, '#7a251d', [L / 2, .42 + H - .25, 0]);
+  for (const s of [-1, 1]) b.box(L + .5, .07, Wd / 2 + .45, '#2f2d2c', [0, .42 + H + .32, s * (Wd / 4 + .1)], [s * .52, 0, 0]);
+  b.box(L + .5, .08, .14, '#f0ece2', [0, .42 + H + .02, Wd / 2 + .05]); b.box(L + .5, .08, .14, '#f0ece2', [0, .42 + H + .02, -Wd / 2 - .05]);
+  for (const s of [-1, 1]) b.box(.06, .9, .06, '#f0ece2', [L / 2 + .02, .42 + H - .1, s * (Wd / 2 - .05)], [s * .5, 0, 0]);   // white barge boards
+  // A landing beside it.
+  b.box(2.2, .07, 1.0, AC.plank, [.6, .32, Wd / 2 + .65]);
+  for (const x of [-.4, 1.6]) b.cyl(.07, .07, 1.2, AC.plankDark, [x, -.25, Wd / 2 + 1.05], [0, 0, 0], 6);
+  g.add(ink(b.mesh(vcMat())));
   return g;
 }

@@ -9,6 +9,7 @@ import { makeSky } from './sky.mjs';
 import { makeWater } from './water.mjs';
 import { makeClouds, makeSmoke, makeSnow, makeFireflies, makeBirds } from './fx.mjs';
 import { Post } from './post.mjs';
+import { createRowing } from './rowing.mjs';
 import { sunPosition, moonPosition, helsinkiParts, helsinkiToUTC, seasonOf, momentWord } from '../astro.mjs';
 import { paletteAt, sunDiscColor } from '../palette.mjs';
 
@@ -51,6 +52,7 @@ export function createStage(canvas, { paintScale, override, onHover, onPick, onC
   const shoreAt = x => { for (let z = 5; z > -10; z -= .25) if (height(x, z) > .2) return z + .5; return 0; };
   const flies = makeFireflies([{ x: 2.6, z: shoreAt(2.6) }, { x: -1, z: -3 }, { x: 4.5, z: shoreAt(4.5) }, { x: 7, z: -8 }]); scene.add(flies);
   const birds = makeBirds(); scene.add(birds);
+  const row = createRowing({ scene, W, water, height });
   const wp = (obj, v) => obj.localToWorld(v.clone());
   const cabinSmoke = smoke.emitter(wp(W.cabin, W.cabin.userData.chimney), 2.2);
   const saunaSmoke = smoke.emitter(wp(W.sauna, W.sauna.userData.flue), 2.6);
@@ -65,7 +67,7 @@ export function createStage(canvas, { paintScale, override, onHover, onPick, onC
   const cabinLight = new THREE.PointLight('#ffb866', 0, 11, 1.6); cabinLight.position.copy(wp(W.cabin, new THREE.Vector3(0, 1.8, 4.2))); scene.add(cabinLight);
   const saunaLight = new THREE.PointLight('#ffa65a', 0, 7, 1.6); saunaLight.position.copy(wp(W.sauna, new THREE.Vector3(2.9, 1.0, -.35))); scene.add(saunaLight);
 
-  const state = { override: override ?? null, view: 'home', cabinOn: true, lanternOn: null, fireOn: null, saunaHeat: 0, fireBoost: 0, gust: 0, boatKick: 0, swing: 0, vis: null, fov: 24, offset: 0, offsetGoal: 0, offsetY: 0, offsetYGoal: 0, soft: 1 };
+  const state = { override: override ?? null, view: 'home', cabinOn: true, lanternOn: null, fireOn: null, saunaHeat: 0, fireBoost: 0, gust: 0, boatKick: 0, swing: 0, vis: null, fov: 24, shift: 0, offset: 0, offsetGoal: 0, offsetY: 0, offsetYGoal: 0, soft: 1 };
   const env = { emis: 0, exposure: 1 };
 
   // ---------- views ----------
@@ -104,7 +106,7 @@ export function createStage(canvas, { paintScale, override, onHover, onPick, onC
   function hotspot(obj, id, anchor, toy){ const h = { obj, id, anchor, toy }; hits.push(h); obj.traverse(o => { o.userData.hit = h; }); }
   hotspot(W.cabin, 'work', above(W.cabin, 6.8), () => { state.cabinOn = true; });
   hotspot(W.woodshed, null, above(W.woodshed, 3.2), () => { state.saunaHeat = 1; });
-  hotspot(W.boat, 'experience', above(W.boat, 1.6), () => { state.boatKick = 1; });
+  hotspot(W.boat, 'row', above(W.boat, 1.6), () => { state.boatKick = 1; });
   hotspot(W.pier, 'experience', () => W.pier.userData.end.clone().add(new THREE.Vector3(0, 1.6, 0)), () => { state.boatKick = 1; });
   hotspot(W.sauna, 'about', above(W.sauna, 4.4), () => { smoke.loyly(wp(W.sauna, W.sauna.userData.stove), wp(W.sauna, W.sauna.userData.door)); state.saunaHeat = 1; });
   hotspot(W.fire, 'contact', above(W.fire, 2.2), () => { state.fireBoost = 1; state.fireOn = true; });
@@ -128,11 +130,11 @@ export function createStage(canvas, { paintScale, override, onHover, onPick, onC
     canvas.style.cursor = h ? 'pointer' : 'grab';
     onHover && onHover(h ? { id: h.id, toy: !h.id } : null);
   }
-  canvas.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') setHover(pick(e.clientX, e.clientY)); });
+  canvas.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') setHover(row.S.on ? null : pick(e.clientX, e.clientY)); });
   canvas.addEventListener('pointerleave', () => setHover(null));
   canvas.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY]; });
   canvas.addEventListener('pointerup', e => {
-    if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return;
+    if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6 || row.S.on) return;
     const h = pick(e.clientX, e.clientY);
     if (h){ h.toy && h.toy(); onPick && onPick(h.id); return; }
     const t = -ray.ray.origin.y / ray.ray.direction.y;
@@ -142,7 +144,7 @@ export function createStage(canvas, { paintScale, override, onHover, onPick, onC
   // ---------- time and light ----------
   const tmp = new THREE.Color(), tmp2 = new THREE.Color(), sunV = new THREE.Vector3(), moonV = new THREE.Vector3();
   const dirFrom = (v, alt, az) => { const a = THREE.MathUtils.degToRad(alt), z = THREE.MathUtils.degToRad(az); return v.set(Math.sin(z) * Math.cos(a), Math.sin(a), -Math.cos(z) * Math.cos(a)); };
-  const nowMs = () => state.override ?? Date.now();
+  const nowMs = () => state.override ?? Date.now() + state.shift;
   let lastSeason = null, lastClock = '';
   function applyEnv(t){
     const ms = nowMs(), p = helsinkiParts(ms), sun = sunPosition(ms), moon = moonPosition(ms);
@@ -245,15 +247,24 @@ export function createStage(canvas, { paintScale, override, onHover, onPick, onC
   let wasTall = null;
   addEventListener('resize', () => { resize(); if (wasTall !== tall()){ wasTall = tall(); goView(state.view, true); } });
   const clock = { elapsed: 0, last: performance.now() };
-  let running = true;
+  let running = true, rowIn = 0;
   function frame(now){
     if (!running) return;
     const dt = Math.min(.05, (now - clock.last) / 1000); clock.last = now; clock.elapsed += dt;
     const t = clock.elapsed;
-    stepTween(dt);
     state.offset += (state.offsetGoal - state.offset) * Math.min(1, dt * 3.2);
     state.offsetY += (state.offsetYGoal - state.offsetY) * Math.min(1, dt * 3.2);
-    fitFov(); controls.update();
+    row.update(dt, clock.elapsed);
+    if (row.S.on){
+      // Rowing: the camera eases in from wherever it was, then follows the boat.
+      const f = row.follow(dt, tall()), k = 1 - Math.exp(-dt * (rowIn < 1 ? 1.2 : 2.2));
+      rowIn = Math.min(1, rowIn + dt / 3);
+      camera.position.lerp(f.pos, k); controls.target.lerp(f.target, k);
+      state.fov += (22 - state.fov) * k;
+      state.soft += (.45 - state.soft) * k;                          // on the water, let the far shore come through clearer
+      fitFov(); camera.lookAt(controls.target);
+      if (row.S.next >= row.S.n) state.lanternOn = true;           // light the pier lantern for the way home
+    } else { state.soft += (1 - state.soft) * Math.min(1, dt * 1.5); stepTween(dt); fitFov(); controls.update(); }
     const pal = applyEnv(t);
     animate(t, dt);
     clouds.update(dt, pal.cloudOp);
@@ -277,6 +288,13 @@ export function createStage(canvas, { paintScale, override, onHover, onPick, onC
   resize(); wasTall = tall(); goView('home', true);
   requestAnimationFrame(frame);
 
+  /** World point to page pixels; `off` is true when it is behind the camera or outside the view. */
+  function screen(v){
+    const a = v.clone().project(camera);
+    const x = (a.x * .5 + .5) * canvas.clientWidth, y = (-a.y * .5 + .5) * canvas.clientHeight;
+    return { x, y, behind: a.z > 1, off: a.z > 1 || Math.abs(a.x) > 1 || Math.abs(a.y) > 1 };
+  }
+
   return {
     goView,
     /** Pixels of the right side (px) or the bottom (py) covered by the panel; the picture eases over to keep its subject visible. */
@@ -287,8 +305,23 @@ export function createStage(canvas, { paintScale, override, onHover, onPick, onC
       const a = h.anchor().project(camera);
       return a.z > 1 ? null : { x: (a.x * .5 + .5) * canvas.clientWidth, y: (-a.y * .5 + .5) * canvas.clientHeight };
     },
+    screen,
     hoverAnchor(){ if (!hover) return null; const a = hover.anchor().project(camera); return { x: (a.x * .5 + .5) * canvas.clientWidth, y: (-a.y * .5 + .5) * canvas.clientHeight }; },
     setTime(ms){ state.override = ms; },
+    /** Run the lake clock this many ms ahead of (or behind) real time; it keeps ticking. */
+    setShift(ms){ state.override = null; state.shift = ms; },
+    /** The rowing game. The page supplies the number of gates and listens for gates and the dock. */
+    row: {
+      start(items, cb){ tween = null; controls.enabled = false; rowIn = 0; state.lanternOn = null; row.start(items, cb); },
+      stop(){ row.stop(); controls.enabled = true; state.lanternOn = null; },
+      input(f, r){ row.S.input.f = f; row.S.input.r = r; },
+      get active(){ return row.S.on; },
+      get next(){ return row.S.next; },
+      speed(){ return row.S.v; },
+      anchor(i){ const v = i == null ? row.dockAnchor() : row.gateAnchor(i); return v && screen(v); },
+      boat(){ return screen(row.boatPos().setY(1.2)); },
+      debug: () => row.debug(),
+    },
     helsinkiToUTC,
     camera, state,
   };

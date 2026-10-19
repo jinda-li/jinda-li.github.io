@@ -40,6 +40,9 @@ export const PROFILE = {
 /** The order of the favourites at the top of the work page. */
 export const FEATURED = ["ukemixr", "microsoft-mr", "a-line", "the-near-world", "flow-treehouse", "mushroom-collector", "the-winter-of-us", "emergence"];
 
+/** The rowing route: one pair of buoys per project, in the order they are passed. */
+export const ROUTE = ["mushroom-collector", "elven-garden", "cotton-candy", "the-winter-of-us", "emergence", "ukemixr", "microsoft-mr", "a-line", "the-near-world", "flow-treehouse"];
+
 export const PROJECTS = [
   // ---------- featured ----------
   {
@@ -101,6 +104,7 @@ export const PROJECTS = [
       { label: "Watch on YouTube", href: "https://youtu.be/bgAs9qyfhXI" },
       { label: "Source", href: GH + "Emergence" },
     ],
+    video: "bgAs9qyfhXI",
     cover: "assets/covers/emergence.jpg",
   },
   {
@@ -152,6 +156,7 @@ export const PROJECTS = [
     role: null,
     tech: ["Unity", "WebGL"],
     links: [{ label: "Play in browser (itch.io)", href: ITCH + "mushroom-collector" }],
+    play: { src: "https://itch.io/embed-upload/15815390?color=1d2230", w: 1280, h: 720 },
     cover: "assets/covers/mushroom-collector.jpg",
   },
 
@@ -346,6 +351,7 @@ export const PROJECTS = [
     role: null,
     tech: ["Unity", "WebGL"],
     links: [{ label: "Play in browser (itch.io)", href: ITCH + "coingame" }],
+    play: { src: "https://itch.io/embed-upload/15516568?color=1d2230", w: 1280, h: 720 },
     cover: "assets/covers/leverage.jpg",
   },
   {
@@ -363,6 +369,7 @@ export const PROJECTS = [
     role: { en: "Design, and programming with Riyou.", zh: "策划，和 Riyou 一起写程序。" },
     tech: ["Unity", "WebGL"],
     links: [{ label: "Play in browser (itch.io)", href: ITCH + "elvengarden" }],
+    play: { src: "https://itch.io/embed-upload/14184253?color=1d2230", w: 980, h: 620 },
     cover: "assets/covers/elven-garden.jpg",
   },
   {
@@ -419,6 +426,7 @@ export const PROJECTS = [
       { label: "Play in browser (itch.io)", href: ITCH + "a-good-catton-candy-is-hard-to-make" },
       { label: "Source", href: GH + "CottonCandy" },
     ],
+    play: { src: "https://itch.io/embed-upload/11264402?color=1d2230", w: 1280, h: 720 },
     cover: "assets/covers/cotton-candy.jpg",
   },
 
@@ -477,6 +485,7 @@ export const PROJECTS = [
       { label: "Play in browser (itch.io)", href: ITCH + "claw-trick" },
       { label: "Source", href: GH + "ClawGame" },
     ],
+    play: { src: "https://itch.io/embed-upload/7253523?color=1d2230", w: 1280, h: 720 },
     cover: "assets/covers/claw-trick.jpg",
   },
   {
@@ -511,6 +520,7 @@ export const PROJECTS = [
     role: { en: "Design and programming.", zh: "策划、程序。" },
     tech: ["Unity", "WebGL"],
     links: [{ label: "Play in browser (itch.io)", href: ITCH + "among-the-stars" }],
+    play: { src: "https://itch.io/embed-upload/6039799?color=1d2230", w: 960, h: 600 },
     cover: "assets/covers/among-the-stars.jpg",
   },
   {
@@ -545,6 +555,7 @@ export const PROJECTS = [
     role: { en: "Solo.", zh: "一个人做。" },
     tech: ["Unity", "WebGL"],
     links: [{ label: "Play in browser (itch.io)", href: ITCH + "wish-list" }],
+    play: { src: "https://itch.io/embed-upload/5555264?color=1d2230", w: 640, h: 480 },
     cover: "assets/covers/wish-list.jpg",
   },
   {
@@ -565,6 +576,7 @@ export const PROJECTS = [
       { label: "Video", href: "https://www.youtube.com/watch?v=4xiNyxKHw5o" },
       { label: "Source", href: GH + "marathon-envs" },
     ],
+    video: "4xiNyxKHw5o",
     cover: "assets/covers/marathon-rl.jpg",
   },
 

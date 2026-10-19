@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { vcMat, rng, noise2, smooth } from './kit.mjs';
 import { L, PATH, shoreZ, height, rockMask, distToPath, buildTerrain, farLand } from './terrain.mjs';
 import { sauna, cottage, woodshed, outhouse, well } from './architecture.mjs';
-import { pier, rowboat, upturnedBoat, pathDetails, clothesline, hammock, picnicTable, flagpole, fireRing, kokko, lantern } from './props.mjs';
+import { pier, rowboat, upturnedBoat, pathDetails, clothesline, hammock, picnicTable, flagpole, fireRing, kokko, lantern, boathouse } from './props.mjs';
 import { juniperGeo, boulderGeo, bilberryGeo, reedGeo, lilyGeo, lupineGeo, instanced, FC } from './flora.mjs';
 import { speciesSpec, STYLES, treeMaterial } from './trees.mjs';
 
@@ -112,7 +112,42 @@ function plan(){
     if (distToPath(x, z) < .8 || cabinClear(x, z) && Math.hypot(x - L.cabin.x, z - L.cabin.z) < 6.5) continue;
     T.lupine.push(at(x, z, { s: .9 + r() * .6, y: height(x, z), c: Math.floor(r() * 4) }));
   }
+  islands(T, at, near);
   return T;
+}
+
+/** Trees, rocks, reeds and lilies on the rowing islands. Uses its own random stream, so the
+ *  shore around the cottage is laid out exactly as before. */
+function islands(T, at0, near){
+  const r = rng(202), at = (x, z, o = {}) => ({ ...at0(x, z, o), ry: r() * 6.28, ...o });
+  for (const I of L.isles){
+    const big = I.r > 4, n = big ? Math.round(I.r * I.r * I.k * .9) : I.key === 'skerry' ? 2 : 0;
+    for (let i = 0, k = 0; i < 400 && k < n; i++){
+      const a = r() * 6.28, q = Math.sqrt(r()) * .72, x = I.x + Math.cos(a) * I.r * q, z = I.z + Math.sin(a) * I.r * I.k * q;
+      if (height(x, z) < .35 || near(x, z, [...T.pine, ...T.spruce, ...T.birch], 1.9)) continue;
+      if (I.key === 'boathouse' && Math.hypot(x - (I.x - 3.2), z - (I.z + 2.6)) < 2.8) continue;     // room for the boathouse
+      const pick = r(), s = (.55 + r() * .4) * (q > .5 ? .85 : 1);
+      if (I.key === 'long' && pick < .45) T.spruce.push(at(x, z, { s: s * 1.05, rz: (r() - .5) * .06 }));
+      else if (pick < .72 || !big) T.pine.push(at(x, z, { s }));
+      else T.birch.push(at(x, z, { s: s * .95 }));
+      k++;
+    }
+    for (let i = 0; i < Math.ceil(I.r * 1.6); i++){                               // granite boulders at the waterline
+      const a = r() * 6.28, x = I.x + Math.cos(a) * I.r * .95, z = I.z + Math.sin(a) * I.r * I.k * .95;
+      T.boulder.push(at(x, z, { s: .3 + r() ** 2 * .9, y: height(x, z) - .2 }));
+    }
+    if (big || I.key === 'skerry') for (let i = 0; i < 260 && T.reed.length < 46 + 70; i++){   // reeds in the lee
+      const a = (I.key === 'long' ? 3.6 : 1.2) + (r() - .5) * 1.6, d = 1.02 + r() * .3;
+      const x = I.x + Math.cos(a) * I.r * d, z = I.z + Math.sin(a) * I.r * I.k * d, h = height(x, z);
+      if (h > .02 || h < -.75 || near(x, z, T.reed, .7)) continue;
+      T.reed.push({ x, z, y: h, ry: r() * 6, s: .8 + r() * .5 });
+      if (T.reed.filter(p => Math.hypot(p.x - I.x, p.z - I.z) < I.r * 1.6).length > (big ? 22 : 8)) break;
+    }
+    if (big) for (let i = 0; i < 7; i++){                                         // a raft of lilies off the shore
+      const a = (I.key === 'long' ? 4.4 : 2.2) + (r() - .5) * .7, d = 1.25 + r() * .25;
+      T.lily.push({ x: I.x + Math.cos(a) * I.r * d + (r() - .5), z: I.z + Math.sin(a) * I.r * I.k * d + (r() - .5), y: .02, ry: r() * 6, s: .9 + r() * .4 });
+    }
+  }
 }
 
 function variants(list, n){ const out = Array.from({ length: n }, () => []); list.forEach((p, i) => out[p.v ?? i % n].push(p)); return out; }
@@ -161,6 +196,11 @@ export function buildWorld(){
   const flag = place(flagpole(), 9.8, -13.2);
   const fire = place(fireRing(), L.fire.x, L.fire.z);
   const bonfire = place(kokko(), L.kokko.x, L.kokko.z, 0, -.1); bonfire.visible = false;
+  // The pine island's boathouse, with a blue boat tied up beside it.
+  for (const I of L.isles) if (I.key === 'boathouse'){
+    const bh = boathouse(); bh.position.set(I.x - 3.6, -.1, I.z + 2.9); bh.rotation.y = -2.46; root.add(bh);
+    const tied = rowboat('#3f6f9a', '#ece4d6'); tied.position.set(I.x - 5.2, -.18, I.z + 5.2); tied.rotation.y = .95; root.add(tied);
+  }
 
   return {
     root, terrain, season, sauna: S, cabin: C, woodshed: W, pier: P, boat, upturned, winterBoat, lantern: lamp,

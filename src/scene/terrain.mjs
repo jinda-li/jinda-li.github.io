@@ -12,6 +12,16 @@ export const L = {
   bay: { x: 2.6, z: -1.2 },
   eastPoint: { x: 11.5, z: -1.6 },
   islet: { x: 28, z: 20, r: 3.2 },
+  // More islands for the rowing route, all outside the view from the hero camera so the home
+  // picture is unchanged: a pine island with a boathouse to the east, granite skerries to the
+  // west, and a long low island far out to the south, behind the camera.
+  isles: [
+    { x: 42, z: 50, r: 5.6, k: .72, h: 2.1, key: 'boathouse' },
+    { x: -25, z: 31, r: 1.5, k: .8, h: .7 },
+    { x: -29.5, z: 37.5, r: 2.7, k: .75, h: 1.3, key: 'skerry' },
+    { x: -21, z: 41.5, r: 1.1, k: .9, h: .5 },
+    { x: 6, z: 74, r: 9, k: .42, h: 2.5, key: 'long' },
+  ],
   avanto: { x: -1.2, z: 10.2, r: .95 },
   fire: { x: 11.2, z: -2.4 },
   kokko: { x: 13.6, z: 1.6 },
@@ -32,7 +42,12 @@ export function rockMask(x, z){
   const b = 1 - Math.hypot((x - 11.6) / 3.4, (z + 1.6) / 2.6);        // east point
   const c = 1 - Math.hypot((x - L.islet.x) / L.islet.r, (z - L.islet.z) / (L.islet.r * .8));
   const e = noise2(x * .35, z * .35) * .25;
-  return Math.max(smooth(0, .25, a + e - .05), smooth(0, .3, b + e - .1), smooth(.0, .35, c + e) * smooth(.75, .3, c));
+  let isle = 0;
+  for (const I of L.isles){
+    const q = 1 - Math.hypot((x - I.x) / I.r, (z - I.z) / (I.r * I.k));
+    if (q > -.3) isle = Math.max(isle, smooth(0, .35, q + e) * (I.r < 3 ? 1 : smooth(.6, .25, q)));
+  }
+  return Math.max(smooth(0, .25, a + e - .05), smooth(0, .3, b + e - .1), smooth(.0, .35, c + e) * smooth(.75, .3, c), isle);
 }
 
 export function distToPath(x, z){
@@ -61,6 +76,11 @@ function rawHeight(x, z){
   // Pine islet: a rocky dome rising out of the lake.
   const di = Math.hypot((x - L.islet.x) / L.islet.r, (z - L.islet.z) / (L.islet.r * .8));
   if (di < 1.6) h = Math.max(h, 1.5 * (1 - di * di) - .1 + (noise2(x * .6, z * .6) - .5) * .25);
+  for (const I of L.isles){
+    const q = Math.hypot((x - I.x) / I.r, (z - I.z) / (I.r * I.k));
+    // A low dome with a firm shoreline: flat-ish on top, dropping steeply into the water at the edge.
+    if (q < 1.6) h = Math.max(h, I.h * (1 - q * q * q) - .15 + (noise2(x * .5 + I.x, z * .5) - .5) * .3 * Math.max(0, 1 - q) - smooth(.95, 1.25, q) * 1.6);
+  }
   return Math.max(h, -3.4);
 }
 
@@ -169,6 +189,7 @@ export function farLand(){
   strip(-78, 18, 70, 26, 9, '#2f4535', 1);       // west headland, nearer
   strip(84, 40, 80, 24, 7, '#3a5040', 5);        // east headland
   strip(-10, -82, 300, 30, 5, '#24342c', 3);     // dark forest band behind the hill
+  strip(0, 128, 380, 40, 6, '#34483a', 17);      // the far southern shore, seen only when rowing
   strip(-20, -125, 380, 60, 7, '#3f5546', 9);    // first ridge, low as Finnish lake country is
   strip(10, -185, 460, 60, 10, '#506656', 13);   // far ridge
   const m = b.mesh(vcMat()); m.castShadow = false; m.receiveShadow = false;

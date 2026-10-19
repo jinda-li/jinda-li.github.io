@@ -34,12 +34,15 @@
   <nav id="nav" aria-label="Sections"></nav>
 </header>
 <div id="corner">
-  <p id="clock" hidden></p>
+  <button id="clock" type="button" hidden aria-haspopup="dialog" aria-expanded="false"></button>
+  <div id="when" hidden></div>
   <div id="lang" role="group" aria-label="Language"></div>
 </div>
 <div id="marks" aria-hidden="true"></div>
 <p id="hint"></p>
 <div id="tag" hidden></div>
+<div id="row" hidden></div>
+<p id="toast" hidden role="status"></p>
 
 <aside id="panel" aria-hidden="true" aria-labelledby="panel-title">
   <div class="sheet">

@@ -1,6 +1,8 @@
 // The page: navigation, the paper panel with the content, language, and the bridge to the lakeside stage.
-import { PROFILE, PROJECTS, FEATURED, NOW, EXPERIENCE, EDUCATION, AWARDS } from './content.mjs';
+import { PROFILE, PROJECTS, FEATURED, ROUTE, NOW, EXPERIENCE, EDUCATION, AWARDS } from './content.mjs';
 import { UI, SECTIONS, MOMENT_EN } from './i18n.mjs';
+import { createWhen } from './when.mjs';
+import { createRowGame, BOAT } from './rowgame.mjs';
 
 const Q = new URLSearchParams(location.search);
 const REVIEW = Q.has('review');                       // ?review=1 marks private projects, for checking before going public
@@ -35,6 +37,13 @@ async function startStage(){
       onClock: c => { clockInfo = c; renderClock(); },
     });
     if (Q.has('debug')) window.__stage = stage;
+    when = createWhen({ stage, button: $('#clock'), popover: $('#when'), labels: () => U().when, onChange: () => renderClock() });
+    if (!override) when.apply();
+    game = createRowGame({
+      stage, el: $('#row'), steps: STEPS, U, T, esc,
+      coverRight: () => innerWidth > 760 && document.body.classList.contains('open') ? panel.getBoundingClientRect().width : 0,
+      highlight, onLeave: () => go('home'), onAgain: () => { game.stop(); startRow(); },
+    });
     document.body.classList.add('ready');
     route();
   } catch (e) {
@@ -45,7 +54,7 @@ async function startStage(){
 }
 
 // ---------- header, clock, language ----------
-let clockInfo = null, hovered = null;
+let clockInfo = null, hovered = null, when = null, game = null;
 function renderHeader(){
   document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
   $('#name').textContent = PROFILE.name;
@@ -53,7 +62,7 @@ function renderHeader(){
   $('#nav').innerHTML = SECTIONS.map(s => `<a href="#${s}" data-s="${s}">${esc(U().nav[s])}</a>`).join('');
   $('#lang').innerHTML = `<button data-lang="en" class="${lang === 'en' ? 'on' : ''}">EN</button><button data-lang="zh" class="${lang === 'zh' ? 'on' : ''}">中</button>`;
   $('#hint').textContent = U().hint;
-  $('#marks').innerHTML = SECTIONS.map(s => `<a class="mark" href="#${s}" data-s="${s}"><i></i>${esc(U().nav[s])}</a>`).join('');
+  $('#marks').innerHTML = [...SECTIONS, 'row'].map(s => `<a class="mark${s === 'row' ? ' row' : ''}" href="#${s}" data-s="${s}"><i></i>${esc(U().nav[s])}</a>`).join('');
   document.title = `${PROFILE.name} · ${T(PROFILE.tagline)}`;
   renderClock();
   markNav();
@@ -63,11 +72,12 @@ function renderClock(){
   const c = clockInfo, pad = n => String(n).padStart(2, '0');
   const word = lang === 'zh' ? c.word : (MOMENT_EN[c.word] || '');
   $('#clock').hidden = false;
-  $('#clock').innerHTML = `<b>${esc(U().helsinki)} ${pad(c.h)}:${pad(c.mi)}</b><span>${esc(word)} · ${esc(U().season[c.season] || '')}</span>`;
+  const mine = !when || when.S.mode === 'yours';
+  $('#clock').innerHTML = `<b>${pad(c.h)}:${pad(c.mi)} <small>${esc(mine ? U().yourTime : U().customTime)}</small></b><span>${esc(word)} · ${esc(U().season[c.season] || '')}</span>`;
 }
 $('#lang').addEventListener('click', e => {
   const b = e.target.closest('[data-lang]'); if (!b) return;
-  lang = b.dataset.lang; store.set('lang', lang); renderHeader(); route(true);
+  lang = b.dataset.lang; store.set('lang', lang); renderHeader(); route(true); game && game.relabel();
 });
 
 // ---------- hover tag and the small marks by each place ----------
@@ -98,25 +108,34 @@ let lastRoute = '';
 function route(force){
   let [s, id] = location.hash.slice(1).split('/');
   if (s === 'now') s = 'about';                         // "now" lives on the about page
+  if (s === 'row' && !stage){ location.replace('#work'); return; }
   markNav();
   const key = `${s}/${id || ''}/${lang}`;
   if (key === lastRoute && !force) return;
   const prevSection = lastRoute.split('/')[0];
   lastRoute = key;
-  if (!SECTIONS.includes(s)){ closePanel(); return; }
+  if (s !== 'row' && game && game.on) game.stop();
+  if (!SECTIONS.includes(s) && s !== 'row'){ closePanel(); return; }
   openPanel(s, id);
-  if (stage && s !== prevSection) stage.goView(s);
+  if (s === 'row'){ if (!(game && game.on)) startRow(); }
+  else if (stage && s !== prevSection) stage.goView(s);
 }
 addEventListener('hashchange', () => route());
-addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('open')) history.pushState('', '', location.pathname + location.search), route(); });
+addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (game && game.on) go('home');
+  else if (document.body.classList.contains('open')) history.pushState('', '', location.pathname + location.search), route();
+});
 
 // On wide screens the panel covers the right side; on phones it is a sheet over the bottom.
-const panelCover = () => innerWidth > 760 ? [panel.getBoundingClientRect().width, 0] : [0, panel.getBoundingClientRect().height];
+const panelCover = () => innerWidth > 760 ? [panel.getBoundingClientRect().width, 0]
+  : document.body.classList.contains('rowing') ? [0, 0] : [0, panel.getBoundingClientRect().height];
 function openPanel(s, id){
   document.body.classList.add('open');
+  document.body.classList.toggle('rowing', s === 'row');
   panel.dataset.section = s;
-  $('#panel .kicker').textContent = U().kicker[s];
-  $('#panel h2').textContent = id ? '' : U().title[s];
+  $('#panel .kicker').textContent = U().kicker[s] ?? U().row.kicker;
+  $('#panel h2').textContent = id ? '' : U().title[s] ?? U().row.title;
   $('#panel .close').setAttribute('aria-label', U().close);
   body.innerHTML = RENDER[s](id);
   panel.scrollTop = 0; body.scrollTop = 0;
@@ -124,7 +143,7 @@ function openPanel(s, id){
   requestAnimationFrame(() => stage && stage.setPanel(...panelCover()));
 }
 function closePanel(){
-  document.body.classList.remove('open');
+  document.body.classList.remove('open', 'rowing');
   panel.setAttribute('aria-hidden', 'true');
   if (stage){ stage.setPanel(0, 0); if (lastRoute && stage.state.view !== 'home') stage.goView('home'); }
 }
@@ -164,7 +183,8 @@ const RENDER = {
     const show = p => filter === 'all' || p.kind === filter;
     const rank = p => { const i = (FEATURED || []).indexOf(p.id); return i < 0 ? 99 : i; };
     const featured = PROJECTS.filter(p => p.featured && show(p)).sort((a, b) => rank(a) - rank(b)), rest = PROJECTS.filter(p => !p.featured && show(p));
-    return `<p class="chips filters">${kinds.map(k => `<button data-filter="${k}" class="${k === filter ? 'on' : ''}">${esc(U().filters[k] || k)}</button>`).join('')}</p>
+    const start = stage ? `<p><a class="row-start" href="#row">${BOAT}${esc(U().row.start)}</a></p>` : '';
+    return `${start}<p class="chips filters">${kinds.map(k => `<button data-filter="${k}" class="${k === filter ? 'on' : ''}">${esc(U().filters[k] || k)}</button>`).join('')}</p>
       ${featured.length ? `<h4>${esc(U().featured)}</h4><div class="cards">${featured.map(p => `
         <a class="card" href="#work/${esc(p.id)}">${cover(p)}<b>${esc(T(p.title))}</b><span>${esc(T(p.line))}</span><em>${[p.year, U().kind[p.kind]].filter(Boolean).map(esc).join(' · ')} ${badge(p)}</em></a>`).join('')}</div>` : ''}
       ${rest.length ? `<h4>${esc(U().more)}</h4><ul class="rows">${rest.map(p => `
@@ -179,6 +199,14 @@ const RENDER = {
       <h4>${esc(U().education)}</h4><ol class="timeline">${EDUCATION.map(x => `<li><time>${span(x)}</time><div><b>${esc(T(x.degree))}</b><span class="org">${esc(x.school)}</span></div></li>`).join('')}</ol>
       <h4>${esc(U().awards)}</h4><ul class="rows plain">${AWARDS.map(a => `<li><em>${esc(a.year)}</em><span>${esc(T(a.title))}</span></li>`).join('')}</ul>`;
   },
+  row(){
+    const list = STEPS();
+    return `<p class="row-intro">${esc(U().row.intro)}</p>
+      <div class="row-now"><p class="row-first">${esc(U().row.first)}</p></div>
+      <ol class="journey">${list.map((p, i) => `
+        <li data-i="${i}"><span class="n">${i + 1}</span><b>${esc(T(p.title))}</b><em>${esc([p.year, U().kind[p.kind]].filter(Boolean).join(' · '))}</em></li>`).join('')}
+        <li class="home" data-i="${list.length}"><span class="n">⌂</span><b>${esc(U().row.home)}</b></li></ol>`;
+  },
   about(){
     const bio = T(PROFILE.bio) || [];
     return `<p class="lede">${esc(T(PROFILE.tagline))}<br><span>${esc(T(PROFILE.tagline2))}</span></p>
@@ -190,6 +218,47 @@ const RENDER = {
     return `${U().contactText.map(p => `<p>${esc(p)}</p>`).join('')}${linkRow(PROFILE.links)}`;
   },
 };
+// ---------- rowing ----------
+/** The projects along the rowing route, one pair of buoys each, in the order they are passed. */
+function STEPS(){ return ROUTE.map(id => PROJECTS.find(p => p.id === id)).filter(Boolean); }
+const yt = id => `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&playsinline=1&loop=1&playlist=${id}&rel=0&modestbranding=1`;
+/** The project just passed opens at the top of the panel: a video plays, a game can be played, a picture drifts. */
+function nowCard(p){
+  const links = (p.links || []).slice(0, 2);
+  const media = p.video
+    ? `<div class="media"><iframe src="${yt(p.video)}" title="${esc(T(p.title))}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>`
+    : p.play
+      ? `<div class="media play" style="--ar:${p.play.w} / ${p.play.h}">${p.cover ? `<img src="${esc(p.cover)}" alt="">` : ''}<button type="button" data-play="${esc(p.id)}">▶ ${esc(U().row.play)}</button></div>`
+      : `<div class="media drift">${p.cover ? `<img src="${esc(p.cover)}" alt="">` : ''}</div>`;
+  return `${media}<h3>${esc(T(p.title))} ${badge(p)}</h3><p class="meta">${[p.year, U().kind[p.kind]].filter(Boolean).map(esc).join(' · ')}</p>
+    <p class="lede">${esc(T(p.line))}</p>${linkRow(links)}<p><a class="more" href="#work/${esc(p.id)}">${esc(U().seeWork)} →</a></p>`;
+}
+/** Light up the project just passed in the panel and open it at the top. */
+function highlight(i){
+  body.querySelectorAll('.journey > li').forEach(li => { const k = +li.dataset.i; li.classList.toggle('passed', k < i); li.classList.toggle('lit', k === i); });
+  const p = STEPS()[i], now = body.querySelector('.row-now');
+  if (now && p){ now.innerHTML = nowCard(p); now.classList.remove('in'); void now.offsetWidth; now.classList.add('in'); }
+  $('#panel .sheet').scrollTo({ top: 0, behavior: 'smooth' });
+}
+body.addEventListener('click', e => {
+  const b = e.target.closest('[data-play]'); if (!b) return;
+  const p = PROJECTS.find(x => x.id === b.dataset.play); if (!p || !p.play) return;
+  const m = b.closest('.media');
+  m.innerHTML = `<iframe src="${esc(p.play.src)}" title="${esc(T(p.title))}" allow="autoplay; fullscreen; gamepad" allowfullscreen></iframe>`;
+  m.insertAdjacentHTML('afterend', `<p class="note">${esc(U().row.playNote)}</p>`);
+  stage && stage.row.input(0, 0);
+});
+function startRow(){
+  if (!stage || !game) return;
+  if (stage.state.vis === 'winter' && when){ when.set('summer'); toast(U().row.frozen); }
+  game.start();
+}
+let toastT = 0;
+function toast(text){
+  const t = $('#toast'); t.textContent = text; t.hidden = false; t.classList.add('in');
+  clearTimeout(toastT); toastT = setTimeout(() => { t.classList.remove('in'); setTimeout(() => { t.hidden = true; }, 600); }, 4200);
+}
+
 body.addEventListener('click', e => {
   const b = e.target.closest('[data-filter]'); if (!b) return;
   filter = b.dataset.filter; body.innerHTML = RENDER.work();

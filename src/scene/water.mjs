@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 
-const RIPPLES = 8;
+const RIPPLES = 16;
 
 export function makeWater(depthTex, avanto){
   const shader = {
@@ -78,7 +78,8 @@ export function makeWater(depthTex, avanto){
         // Sun glitter.
         vec3 hv = normalize(normalize(sunDir) + view);
         float spec = pow(max(dot(n, hv), 0.), 380.) * 3. + step(.996, dot(n, hv)) * step(.5, vn(p * 9. + time * 2.)) * 2.;
-        col += sunCol * spec * sunVis;
+        // Only at grazing angles: seen from above (the rowing camera) it would scatter the lake with specks.
+        col += sunCol * spec * sunVis * smoothstep(.3, .12, view.y);
         // Foam where it is shallow at the shore.
         float foam = smoothstep(.16, .02, depth) * (.55 + .45 * sin(time * 1.3 + p.x * 2.1 + p.y * 1.7));
         col = mix(col, vec3(.92, .95, .97) * (skyCol * .3 + .75), foam * .45 * (1. - ice));
