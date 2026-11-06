@@ -65,6 +65,7 @@ function renderHeader(){
   $('#marks').innerHTML = [...SECTIONS, 'row'].map(s => `<a class="mark${s === 'row' ? ' row' : ''}" href="#${s}" data-s="${s}"><i></i>${esc(U().nav[s])}</a>`).join('');
   document.title = `${PROFILE.name} · ${T(PROFILE.tagline)}`;
   renderClock();
+  renderBare();
   markNav();
 }
 function renderClock(){
@@ -123,12 +124,34 @@ function route(force){
 addEventListener('hashchange', () => route());
 addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  if (game && game.on) go('home');
+  if (isBare()) setBare(false);
+  else if (game && game.on) go('home');
   else if (document.body.classList.contains('open')) history.pushState('', '', location.pathname + location.search), route();
 });
 
+// ---------- just the lake: one button hides every bit of interface, and brings it back ----------
+const EYE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></svg>';
+const EYE_OFF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/><path d="M4 20 20 4"/></svg>';
+const isBare = () => document.body.classList.contains('bare');
+function renderBare(){
+  const b = $('#bare'), on = isBare(), label = U().bare[on ? 1 : 0];
+  b.innerHTML = on ? EYE : EYE_OFF;
+  b.setAttribute('aria-pressed', String(on));
+  b.setAttribute('aria-label', label); b.title = label;
+}
+function setBare(on){
+  document.body.classList.toggle('bare', on);
+  renderBare();
+  if (stage && document.body.classList.contains('open')) stage.setPanel(...panelCover());
+}
+$('#bare').addEventListener('click', () => setBare(!isBare()));
+addEventListener('keydown', e => {
+  if (e.code !== 'KeyH' || e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+  setBare(!isBare());
+});
+
 // On wide screens the panel covers the right side; on phones it is a sheet over the bottom.
-const panelCover = () => innerWidth > 760 ? [panel.getBoundingClientRect().width, 0]
+const panelCover = () => isBare() ? [0, 0] : innerWidth > 760 ? [panel.getBoundingClientRect().width, 0]
   : document.body.classList.contains('rowing') ? [0, 0] : [0, panel.getBoundingClientRect().height];
 function openPanel(s, id){
   document.body.classList.add('open');
